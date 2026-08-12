@@ -216,3 +216,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# IDE
+.idea/
+.vscode/
+
+# Python & UV Cache
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+
+# Environment Variables
+.env
+!.env.example
+
+# OS files
+.DS_Store
