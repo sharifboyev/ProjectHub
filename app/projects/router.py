@@ -50,6 +50,18 @@ async def add_project_member(
     return await service.add_member_by_email(project_id, data, current_user)
 
 
+@router.post("/{project_id}/invite", status_code=status.HTTP_201_CREATED)
+async def invite_member(
+    project_id: uuid.UUID,
+    data: AddMemberRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Пригласить участника в проект (алиас для add_member_by_email)."""
+    service = ProjectService(db)
+    return await service.add_member_by_email(project_id, data, current_user)
+
+
 @router.put("/{project_id}", response_model=ProjectRead)
 async def update_project(
     project_id: uuid.UUID,
