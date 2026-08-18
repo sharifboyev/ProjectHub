@@ -47,7 +47,7 @@ class Project(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -62,9 +62,15 @@ class Project(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationships
+    # Relationships (каждое отношение объявлено строго ОДИН раз)
     owner: Mapped["User"] = relationship("User", back_populates="owned_projects")
-    members: Mapped[List["ProjectMember"]] = relationship("ProjectMember", back_populates="project",
-                                                          cascade="all, delete-orphan")
-    documents: Mapped[List["Document"]] = relationship("Document", back_populates="project",
-                                                       cascade="all, delete-orphan")
+    members: Mapped[List["ProjectMember"]] = relationship(
+        "ProjectMember",
+        back_populates="project",
+        cascade="all, delete-orphan"
+    )
+    documents: Mapped[List["Document"]] = relationship(
+        "Document",
+        back_populates="project",
+        cascade="all, delete-orphan"
+    )

@@ -52,3 +52,17 @@ class ProjectRepository:
         await self.db.commit()
         await self.db.refresh(member)
         return member
+
+    async def update(self, project: Project, update_data: dict) -> Project:
+        """Обновляет поля модели из полученного словаря."""
+        for key, value in update_data.items():
+            setattr(project, key, value)
+
+        await self.db.commit()
+        await self.db.refresh(project)
+        return project
+
+    async def delete(self, project: Project) -> None:
+        """Удаляет объект проекта из базы данных."""
+        await self.db.delete(project)
+        await self.db.commit()

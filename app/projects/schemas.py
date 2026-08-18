@@ -39,3 +39,17 @@ class ProjectRead(BaseModel):
 class AddMemberRequest(BaseModel):
     email: EmailStr
     role: RoleEnum = RoleEnum.PARTICIPANT
+
+class ProjectInviteRequest(BaseModel):
+    email: EmailStr
+    role: RoleEnum = RoleEnum.PARTICIPANT
+
+
+class ProjectMemberRead(BaseModel):
+    user_id: uuid.UUID
+    email: str
+    role: RoleEnum
+    joined_at: datetime
+
+    class Config:
+        from_attributes = True
