@@ -1,0 +1,328 @@
+E402 Module level import not at top of file
+  --> app/auth/schemas.py:29:1
+   |
+29 | from app.users.schemas import UserRead
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+30 |
+31 | TokenResponse.model_rebuild()
+   |
+help: Move module level imports to top of file
+
+E501 Line too long (116 > 100)
+  --> app/documents/models.py:20:101
+   |
+19 |     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+20 |     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"),
+   |                                                                                                     ^^^^^^^^^^^^^^^^
+21 |                                                   nullable=False)
+22 |     title: Mapped[str] = mapped_column(String(255), nullable=False)
+   |
+
+E501 Line too long (108 > 100)
+  --> app/documents/models.py:23:101
+   |
+21 |                                                   nullable=False)
+22 |     title: Mapped[str] = mapped_column(String(255), nullable=False)
+23 |     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+   |                                                                                                     ^^^^^^^^
+24 |
+25 |     project: Mapped["Project"] = relationship("Project", back_populates="documents")
+   |
+
+E501 Line too long (118 > 100)
+  --> app/documents/models.py:38:101
+   |
+37 |     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+38 |     document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"),
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^
+39 |                                                    nullable=False)
+40 |     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+   |
+
+E501 Line too long (118 > 100)
+  --> app/documents/models.py:48:101
+   |
+46 |     content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+47 |
+48 |     uploaded_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"),
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^
+49 |                                                       nullable=True)
+50 |     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+   |
+
+E501 Line too long (108 > 100)
+  --> app/documents/models.py:50:101
+   |
+48 |     uploaded_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"),
+49 |                                                       nullable=True)
+50 |     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+   |                                                                                                     ^^^^^^^^
+51 |
+52 |     document: Mapped["Document"] = relationship("Document", back_populates="versions")
+   |
+
+E501 Line too long (107 > 100)
+   --> app/documents/repository.py:113:101
+    |
+111 |         return result.scalar_one_or_none()
+112 |
+113 |     async def add_member(self, project_id: uuid.UUID, user_id: uuid.UUID, role: RoleEnum) -> ProjectMember:
+    |                                                                                                     ^^^^^^^
+114 |         member = ProjectMember(
+115 |             project_id=project_id,
+    |
+
+E501 Line too long (114 > 100)
+  --> app/documents/router.py:16:101
+   |
+16 | @router.post("/projects/{project_id}/documents", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
+   |                                                                                                     ^^^^^^^^^^^^^^
+17 | async def upload_document(
+18 |     project_id: uuid.UUID,
+   |
+
+E501 Line too long (103 > 100)
+  --> app/projects/repository.py:15:101
+   |
+13 |         self.db = db
+14 |
+15 |     async def create_project(self, name: str, description: str | None, owner_id: uuid.UUID) -> Project:
+   |                                                                                                     ^^^
+16 |         project = Project(name=name, description=description, owner_id=owner_id)
+17 |         self.db.add(project)
+   |
+
+E501 Line too long (107 > 100)
+  --> app/projects/repository.py:50:101
+   |
+48 |         return result.scalars().all()
+49 |
+50 |     async def add_member(self, project_id: uuid.UUID, user_id: uuid.UUID, role: RoleEnum) -> ProjectMember:
+   |                                                                                                     ^^^^^^^
+51 |         member = ProjectMember(project_id=project_id, user_id=user_id, role=role)
+52 |         self.db.add(member)
+   |
+
+E501 Line too long (107 > 100)
+  --> app/projects/service.py:30:101
+   |
+28 |         return await self.repo.get_user_projects(current_user.id)
+29 |
+30 |     async def add_member_by_email(self, project_id: uuid.UUID, data: AddMemberRequest, current_user: User):
+   |                                                                                                     ^^^^^^^
+31 |         project = await self.repo.get_by_id(project_id)
+32 |         if not project:
+   |
+
+E501 Line too long (102 > 100)
+  --> app/projects/service.py:36:101
+   |
+35 |         if project.owner_id != current_user.id:
+36 |             raise HTTPException(status_code=403, detail="Недостаточно прав для добавления участников")
+   |                                                                                                     ^^
+37 |
+38 |         target_user = await self.user_repo.get_by_email(data.email)
+   |
+
+E501 Line too long (103 > 100)
+  --> app/projects/service.py:43:101
+   |
+42 |         if any(m.user_id == target_user.id for m in project.members):
+43 |             raise HTTPException(status_code=400, detail="Пользователь уже является участником проекта")
+   |                                                                                                     ^^^
+44 |
+45 |         return await self.repo.add_member(project_id=project.id, user_id=target_user.id, role=data.role)
+   |
+
+E501 Line too long (104 > 100)
+  --> app/projects/service.py:45:101
+   |
+43 |             raise HTTPException(status_code=400, detail="Пользователь уже является участником проекта")
+44 |
+45 |         return await self.repo.add_member(project_id=project.id, user_id=target_user.id, role=data.role)
+   |                                                                                                     ^^^^
+46 |
+47 |     async def update_project(self, project_id: uuid.UUID, project_in: ProjectUpdate, current_user: User) -> Project:
+   |
+
+E501 Line too long (116 > 100)
+  --> app/projects/service.py:47:101
+   |
+45 |         return await self.repo.add_member(project_id=project.id, user_id=target_user.id, role=data.role)
+46 |
+47 |     async def update_project(self, project_id: uuid.UUID, project_in: ProjectUpdate, current_user: User) -> Project:
+   |                                                                                                     ^^^^^^^^^^^^^^^^
+48 |         project = await self.repo.get_by_id(project_id)
+49 |         if project is None:
+   |
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+  --> app/shared/security/dependencies.py:41:9
+   |
+39 |         user_id = uuid.UUID(user_id_str)
+40 |     except ValueError:
+41 |         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный формат UUID")
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+42 |
+43 |     query = select(User).where(User.id == user_id)
+   |
+
+E501 Line too long (101 > 100)
+  --> app/users/models.py:37:101
+   |
+35 |     # Relationships
+36 |     owned_projects: Mapped[list["Project"]] = relationship("Project", back_populates="owner")
+37 |     memberships: Mapped[list["ProjectMember"]] = relationship("ProjectMember", back_populates="user")
+   |                                                                                                     ^
+
+E501 Line too long (105 > 100)
+  --> migrations/versions/2ea81d2f2ec2_add_document_versions_and_update_.py:50:101
+   |
+48 |     """Downgrade schema."""
+49 |     # ### commands auto generated by Alembic - please adjust! ###
+50 |     op.add_column('documents', sa.Column('file_size', sa.INTEGER(), autoincrement=False, nullable=False))
+   |                                                                                                     ^^^^^
+51 |     op.add_column('documents', sa.Column('uploaded_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False))
+52 |     op.add_column('documents', sa.Column('s3_key', sa.VARCHAR(length=512), autoincrement=False, nullable=False))
+   |
+
+E501 Line too long (130 > 100)
+  --> migrations/versions/2ea81d2f2ec2_add_document_versions_and_update_.py:51:101
+   |
+49 |     # ### commands auto generated by Alembic - please adjust! ###
+50 |     op.add_column('documents', sa.Column('file_size', sa.INTEGER(), autoincrement=False, nullable=False))
+51 |     op.add_column('documents', sa.Column('uploaded_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False))
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+52 |     op.add_column('documents', sa.Column('s3_key', sa.VARCHAR(length=512), autoincrement=False, nullable=False))
+53 |     op.add_column('documents', sa.Column('filename', sa.VARCHAR(length=255), autoincrement=False, nullable=False))
+   |
+
+E501 Line too long (112 > 100)
+  --> migrations/versions/2ea81d2f2ec2_add_document_versions_and_update_.py:52:101
+   |
+50 |     op.add_column('documents', sa.Column('file_size', sa.INTEGER(), autoincrement=False, nullable=False))
+51 |     op.add_column('documents', sa.Column('uploaded_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False))
+52 |     op.add_column('documents', sa.Column('s3_key', sa.VARCHAR(length=512), autoincrement=False, nullable=False))
+   |                                                                                                     ^^^^^^^^^^^^
+53 |     op.add_column('documents', sa.Column('filename', sa.VARCHAR(length=255), autoincrement=False, nullable=False))
+54 |     op.drop_column('documents', 'created_at')
+   |
+
+E501 Line too long (114 > 100)
+  --> migrations/versions/2ea81d2f2ec2_add_document_versions_and_update_.py:53:101
+   |
+51 |     op.add_column('documents', sa.Column('uploaded_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False))
+52 |     op.add_column('documents', sa.Column('s3_key', sa.VARCHAR(length=512), autoincrement=False, nullable=False))
+53 |     op.add_column('documents', sa.Column('filename', sa.VARCHAR(length=255), autoincrement=False, nullable=False))
+   |                                                                                                     ^^^^^^^^^^^^^^
+54 |     op.drop_column('documents', 'created_at')
+55 |     op.drop_column('documents', 'title')
+   |
+
+E501 Line too long (107 > 100)
+  --> migrations/versions/3f8b1b41bd22_initial_tables_creation.py:57:101
+   |
+55 |     sa.Column('project_id', sa.UUID(), nullable=False),
+56 |     sa.Column('user_id', sa.UUID(), nullable=False),
+57 |     sa.Column('role', sa.Enum('OWNER', 'PARTICIPANT', name='roleenum', native_enum=False), nullable=False),
+   |                                                                                                     ^^^^^^^
+58 |     sa.Column('joined_at', sa.DateTime(timezone=True), nullable=False),
+59 |     sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
+   |
+
+F841 Local variable `v2_data` is assigned to but never used
+   --> tests/test_documents.py:111:5
+    |
+109 |     )
+110 |     assert v2_resp.status_code == 201
+111 |     v2_data = v2_resp.json()
+    |     ^^^^^^^
+112 |
+113 |     # 5. Проверка списка версий
+    |
+help: Remove assignment to unused variable `v2_data`
+
+E501 Line too long (115 > 100)
+   --> tests/test_documents.py:134:101
+    |
+132 |         "repeat_password": "Password123!",
+133 |     })
+134 |     login_owner = await client.post("/auth/login", json={"email": "owner@example.com", "password": "Password123!"})
+    |                                                                                                     ^^^^^^^^^^^^^^^
+135 |     owner_headers = {"Authorization": f"Bearer {login_owner.json()['access_token']}"}
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/test_documents.py:137:101
+    |
+135 |     owner_headers = {"Authorization": f"Bearer {login_owner.json()['access_token']}"}
+136 |
+137 |     project_resp = await client.post("/projects", json={"name": "Perm Project"}, headers=owner_headers)
+    |                                                                                                     ^^^
+138 |     project_id = project_resp.json()["id"]
+    |
+
+E501 Line too long (108 > 100)
+   --> tests/test_documents.py:142:101
+    |
+140 |     file_content = b"Content"
+141 |     files = {"file": ("test.txt", io.BytesIO(file_content), "text/plain")}
+142 |     upload_resp = await client.post(f"/projects/{project_id}/documents", files=files, headers=owner_headers)
+    |                                                                                                     ^^^^^^^^
+143 |     doc_id = upload_resp.json()["id"]
+    |
+
+E501 Line too long (120 > 100)
+   --> tests/test_documents.py:153:101
+    |
+151 |         "repeat_password": "Password123!",
+152 |     })
+153 |     login_part = await client.post("/auth/login", json={"email": "participant@example.com", "password": "Password123!"})
+    |                                                                                                     ^^^^^^^^^^^^^^^^^^^^
+154 |     part_headers = {"Authorization": f"Bearer {login_part.json()['access_token']}"}
+    |
+
+E501 Line too long (145 > 100)
+   --> tests/test_documents.py:156:101
+    |
+154 | ….json()['access_token']}"}
+155 | …
+156 | …json={"email": "participant@example.com", "role": "participant"}, headers=owner_headers)
+    |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+157 | …
+158 | …ть 403)
+    |
+
+E501 Line too long (116 > 100)
+  --> tests/test_projects.py:57:101
+   |
+56 |     add_member_payload = {"email": member_email, "role": "participant"}
+57 |     add_member_resp = await client.post(f"/projects/{project_id}/members", json=add_member_payload, headers=headers)
+   |                                                                                                     ^^^^^^^^^^^^^^^^
+58 |     assert add_member_resp.status_code == 201
+   |
+
+E501 Line too long (101 > 100)
+  --> tests/test_storage.py:14:101
+   |
+12 |     # Мокаем S3 и Redis
+13 |     mocker.patch("app.shared.s3.client.s3_client.get_project_total_size", return_value=0)
+14 |     mocker.patch("app.shared.s3.client.s3_client.upload_file", return_value="projects/test/file.txt")
+   |                                                                                                     ^
+15 |     
+16 |     mock_redis = mocker.AsyncMock()
+   |
+
+E501 Line too long (104 > 100)
+  --> tests/test_storage.py:33:101
+   |
+31 |     # Устанавливаем текущий размер в 49.9 MB
+32 |     almost_full_size = MAX_PROJECT_STORAGE_BYTES - 100
+33 |     mocker.patch("app.shared.s3.client.s3_client.get_project_total_size", return_value=almost_full_size)
+   |                                                                                                     ^^^^
+34 |     
+35 |     mock_redis = mocker.AsyncMock()
+   |
+
+Found 31 errors.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).

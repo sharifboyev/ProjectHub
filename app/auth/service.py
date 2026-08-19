@@ -1,12 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schemas import UserRegisterRequest, UserLoginRequest, TokenResponse
+from app.auth.schemas import TokenResponse, UserLoginRequest, UserRegisterRequest
+from app.shared.security.jwt import create_access_token
+from app.shared.security.password import hash_password, verify_password
 from app.users.models import User
 from app.users.repository import UserRepository
 from app.users.schemas import UserRead
-from app.shared.security.password import hash_password, verify_password
-from app.shared.security.jwt import create_access_token
 
 
 class AuthService:

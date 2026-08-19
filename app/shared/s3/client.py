@@ -1,3 +1,5 @@
+import uuid
+
 import aioboto3
 from botocore.exceptions import ClientError
 from fastapi import UploadFile
@@ -27,7 +29,7 @@ class S3Client:
             except ClientError:
                 await client.create_bucket(Bucket=self.bucket_name)
 
-    async def get_project_total_size(self, project_id: int) -> int:
+    async def get_project_total_size(self, project_id: uuid.UUID | str | int) -> int:
         """Подсчитывает суммарный объем (в байтах) всех файлов проекта."""
         prefix = f"projects/{project_id}/"
         total_size = 0

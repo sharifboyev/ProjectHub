@@ -1,8 +1,9 @@
 import uuid
 from pathlib import Path
+
 from fastapi import HTTPException, UploadFile, status
 
-from app.shared.redis.client import redis_client
+from app.shared.redis.client import get_redis
 from app.shared.s3.client import s3_client
 
 MAX_PROJECT_STORAGE_BYTES = 50 * 1024 * 1024  # 50 MB
@@ -18,15 +19,16 @@ class StorageService:
     async def get_project_size(cls, project_id: uuid.UUID) -> int:
         """Возвращает размер проекта из Redis-кэша, а при промахе считает из S3."""
         cache_key = cls._get_cache_key(project_id)
+        redis = await get_redis()
 
         # Проверяем кэш в Redis
-        cached_size = await redis_client.get(cache_key)
+        cached_size = await redis.get(cache_key)
         if cached_size is not None:
             return int(cached_size)
 
         # Если в кэше нет — считаем напрямую из S3 и сохраняем
         total_size = await s3_client.get_project_total_size(project_id)
-        await redis_client.set(cache_key, str(total_size), ex=REDIS_CACHE_TTL)
+        await redis.set(cache_key, str(total_size), ex=REDIS_CACHE_TTL)
         return total_size
 
     @classmethod
@@ -50,8 +52,9 @@ class StorageService:
 
         # Инкрементируем размер в Redis
         cache_key = cls._get_cache_key(project_id)
-        if await redis_client.exists(cache_key):
-            await redis_client.incrby(cache_key, file_size)
+        redis = await get_redis()
+        if await redis.exists(cache_key):
+            await redis.incrby(cache_key, file_size)
 
         return uploaded_path
 

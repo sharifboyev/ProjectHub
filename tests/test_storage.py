@@ -1,21 +1,24 @@
 import uuid
-import pytest
-from fastapi import HTTPException, UploadFile
 from io import BytesIO
 
-from app.shared.storage import StorageService, MAX_PROJECT_STORAGE_BYTES
+import pytest
+from fastapi import HTTPException, UploadFile
+
+from app.shared.storage import MAX_PROJECT_STORAGE_BYTES, StorageService
 
 
 @pytest.mark.asyncio
 async def test_upload_file_within_limit(mocker):
     # Мокаем S3 и Redis
     mocker.patch("app.shared.s3.client.s3_client.get_project_total_size", return_value=0)
-    mocker.patch("app.shared.s3.client.s3_client.upload_file", return_value="projects/test/file.txt")
-    
+    mocker.patch(
+        "app.shared.s3.client.s3_client.upload_file", return_value="projects/test/file.txt"
+    )
+
     mock_redis = mocker.AsyncMock()
     mock_redis.get.return_value = None
     mock_redis.exists.return_value = False
-    mocker.patch("app.shared.storage.redis_client", mock_redis)
+    mocker.patch("app.shared.storage.get_redis", return_value=mock_redis)
 
     project_id = uuid.uuid4()
     dummy_file = UploadFile(filename="test.txt", file=BytesIO(b"Hello World"))
@@ -29,11 +32,13 @@ async def test_upload_file_within_limit(mocker):
 async def test_upload_file_exceeds_limit(mocker):
     # Устанавливаем текущий размер в 49.9 MB
     almost_full_size = MAX_PROJECT_STORAGE_BYTES - 100
-    mocker.patch("app.shared.s3.client.s3_client.get_project_total_size", return_value=almost_full_size)
-    
+    mocker.patch(
+        "app.shared.s3.client.s3_client.get_project_total_size", return_value=almost_full_size
+    )
+
     mock_redis = mocker.AsyncMock()
     mock_redis.get.return_value = str(almost_full_size)
-    mocker.patch("app.shared.storage.redis_client", mock_redis)
+    mocker.patch("app.shared.storage.get_redis", return_value=mock_redis)
 
     project_id = uuid.uuid4()
 

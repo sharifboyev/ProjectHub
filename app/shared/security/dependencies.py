@@ -1,9 +1,9 @@
 import uuid
-from typing import AsyncGenerator
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.shared.db.session import get_db
 from app.shared.security.jwt import decode_token
@@ -14,8 +14,8 @@ security_scheme = HTTPBearer()
 
 
 async def get_current_user(
-        credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
-        db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Dependency: извлекает JWT из HTTP-заголовка Authorization, валидирует и возвращает User."""
     token = credentials.credentials
@@ -37,8 +37,10 @@ async def get_current_user(
 
     try:
         user_id = uuid.UUID(user_id_str)
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный формат UUID")
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный формат UUID"
+        ) from err
 
     query = select(User).where(User.id == user_id)
     result = await db.execute(query)

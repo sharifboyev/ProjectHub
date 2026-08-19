@@ -21,11 +21,7 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = "projecthub-documents"
     S3_REGION: str = "us-east-1"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

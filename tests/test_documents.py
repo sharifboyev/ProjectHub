@@ -1,4 +1,5 @@
 import io
+
 import pytest
 from httpx import AsyncClient
 
@@ -27,9 +28,7 @@ async def test_document_lifecycle(client: AsyncClient):
 
     # 2. Создание проекта
     project_payload = {"name": "Test Project", "description": "Project for docs"}
-    project_resp = await client.post(
-        "/projects", json=project_payload, headers=headers
-    )
+    project_resp = await client.post("/projects", json=project_payload, headers=headers)
     assert project_resp.status_code == 201
     project_id = project_resp.json()["id"]
 
@@ -47,9 +46,7 @@ async def test_document_lifecycle(client: AsyncClient):
     doc_id = doc_data["id"]
 
     # 4. Проверка получения списка документов
-    list_resp = await client.get(
-        f"/projects/{project_id}/documents", headers=headers
-    )
+    list_resp = await client.get(f"/projects/{project_id}/documents", headers=headers)
     assert list_resp.status_code == 200
     assert len(list_resp.json()) == 1
 
@@ -103,11 +100,8 @@ async def test_document_versioning(client: AsyncClient):
     v2_content = b"Updated version 2.0 content with changes"
     files_v2 = {"file": ("doc_v2.txt", io.BytesIO(v2_content), "text/plain")}
 
-    v2_resp = await client.post(
-        f"/documents/{doc_id}/versions", files=files_v2, headers=headers
-    )
+    v2_resp = await client.post(f"/documents/{doc_id}/versions", files=files_v2, headers=headers)
     assert v2_resp.status_code == 201
-    v2_data = v2_resp.json()
 
     # 5. Проверка списка версий
     doc_detail_resp = await client.get(f"/documents/{doc_id}", headers=headers)
@@ -123,36 +117,54 @@ async def test_document_versioning(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_document_delete_permissions(client: AsyncClient):
     # 1. Регистрация Владельца и создание проекта/документа
-    await client.post("/auth/register", json={
-        "email": "owner@example.com",
-        "first_name": "Owner",
-        "last_name": "User",
-        "password": "Password123!",
-        "repeat_password": "Password123!",
-    })
-    login_owner = await client.post("/auth/login", json={"email": "owner@example.com", "password": "Password123!"})
+    await client.post(
+        "/auth/register",
+        json={
+            "email": "owner@example.com",
+            "first_name": "Owner",
+            "last_name": "User",
+            "password": "Password123!",
+            "repeat_password": "Password123!",
+        },
+    )
+    login_owner = await client.post(
+        "/auth/login", json={"email": "owner@example.com", "password": "Password123!"}
+    )
     owner_headers = {"Authorization": f"Bearer {login_owner.json()['access_token']}"}
 
-    project_resp = await client.post("/projects", json={"name": "Perm Project"}, headers=owner_headers)
+    project_resp = await client.post(
+        "/projects", json={"name": "Perm Project"}, headers=owner_headers
+    )
     project_id = project_resp.json()["id"]
 
     file_content = b"Content"
     files = {"file": ("test.txt", io.BytesIO(file_content), "text/plain")}
-    upload_resp = await client.post(f"/projects/{project_id}/documents", files=files, headers=owner_headers)
+    upload_resp = await client.post(
+        f"/projects/{project_id}/documents", files=files, headers=owner_headers
+    )
     doc_id = upload_resp.json()["id"]
 
     # 2. Регистрация Участника и добавление его в проект
-    await client.post("/auth/register", json={
-        "email": "participant@example.com",
-        "first_name": "Part",
-        "last_name": "User",
-        "password": "Password123!",
-        "repeat_password": "Password123!",
-    })
-    login_part = await client.post("/auth/login", json={"email": "participant@example.com", "password": "Password123!"})
+    await client.post(
+        "/auth/register",
+        json={
+            "email": "participant@example.com",
+            "first_name": "Part",
+            "last_name": "User",
+            "password": "Password123!",
+            "repeat_password": "Password123!",
+        },
+    )
+    login_part = await client.post(
+        "/auth/login", json={"email": "participant@example.com", "password": "Password123!"}
+    )
     part_headers = {"Authorization": f"Bearer {login_part.json()['access_token']}"}
 
-    await client.post(f"/projects/{project_id}/members", json={"email": "participant@example.com", "role": "participant"}, headers=owner_headers)
+    await client.post(
+        f"/projects/{project_id}/members",
+        json={"email": "participant@example.com", "role": "participant"},
+        headers=owner_headers,
+    )
 
     # 3. Попытка удаления документа участником (должно быть 403)
     delete_resp = await client.delete(f"/documents/{doc_id}", headers=part_headers)

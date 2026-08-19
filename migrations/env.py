@@ -1,16 +1,14 @@
 import asyncio
 from logging.config import fileConfig
+
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from alembic import context
 
 from app.shared.config.settings import settings
 from app.shared.db.session import Base
 
 # Импортируем все модели, чтобы Alembic их "увидел"
-from app.users.models import User
-from app.projects.models import Project, ProjectMember
-from app.documents.models import Document
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

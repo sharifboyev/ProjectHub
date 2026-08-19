@@ -45,16 +45,21 @@ async def test_project_lifecycle(client: AsyncClient):
 
     # 5. Add member (Register another user first)
     member_email = "member@example.com"
-    await client.post("/auth/register", json={
-        "email": member_email,
-        "first_name": "Member",
-        "last_name": "User",
-        "password": "StrongPassword123!",
-        "repeat_password": "StrongPassword123!",
-    })
-    
+    await client.post(
+        "/auth/register",
+        json={
+            "email": member_email,
+            "first_name": "Member",
+            "last_name": "User",
+            "password": "StrongPassword123!",
+            "repeat_password": "StrongPassword123!",
+        },
+    )
+
     add_member_payload = {"email": member_email, "role": "participant"}
-    add_member_resp = await client.post(f"/projects/{project_id}/members", json=add_member_payload, headers=headers)
+    add_member_resp = await client.post(
+        f"/projects/{project_id}/members", json=add_member_payload, headers=headers
+    )
     assert add_member_resp.status_code == 201
 
     # 6. Delete project

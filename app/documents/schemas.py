@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+
+from pydantic import BaseModel, ConfigDict
+
 from app.users.schemas import UserRead
 
 
@@ -12,7 +13,7 @@ class DocumentVersionRead(BaseModel):
     file_size: int
     content_type: str
     s3_key: str
-    uploaded_by: Optional[UserRead] = None
+    uploaded_by: UserRead | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -23,11 +24,11 @@ class DocumentRead(BaseModel):
     project_id: uuid.UUID
     title: str
     created_at: datetime
-    versions: List[DocumentVersionRead] = []
+    versions: list[DocumentVersionRead] = []
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    description: str | None = None

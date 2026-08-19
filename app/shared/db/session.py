@@ -1,5 +1,6 @@
-from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.shared.config.settings import settings
@@ -22,7 +23,6 @@ AsyncSessionLocal = async_sessionmaker(
 
 class Base(DeclarativeBase):
     """Базовый класс для всех моделей SQLAlchemy."""
-    pass
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

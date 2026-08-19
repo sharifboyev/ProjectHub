@@ -26,5 +26,6 @@ class TokenResponse(BaseModel):
     user: "UserRead"
 
 
-from app.users.schemas import UserRead
+from app.users.schemas import UserRead  # noqa: E402
+
 TokenResponse.model_rebuild()

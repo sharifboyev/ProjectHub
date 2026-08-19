@@ -10,7 +10,7 @@ async def test_register_and_login_user(client: AsyncClient):
         "first_name": "Test",
         "last_name": "User",
         "password": "StrongPassword123!",
-        "repeat_password": "StrongPassword123!"
+        "repeat_password": "StrongPassword123!",
     }
     response = await client.post("/auth/register", json=register_payload)
     assert response.status_code == 201
@@ -19,10 +19,7 @@ async def test_register_and_login_user(client: AsyncClient):
     assert "id" in data
 
     # 2. Логин и получение JWT (UserLoginRequest ожидает email и password)
-    login_payload = {
-        "email": "testuser@example.com",
-        "password": "StrongPassword123!"
-    }
+    login_payload = {"email": "testuser@example.com", "password": "StrongPassword123!"}
     login_response = await client.post("/auth/login", json=login_payload)
     assert login_response.status_code == 200
     tokens = login_response.json()

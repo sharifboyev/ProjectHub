@@ -1,17 +1,15 @@
 import json
 import uuid
-from typing import Sequence
-from fastapi import UploadFile, HTTPException, status
+
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.documents.models import Document
 from app.documents.repository import DocumentRepository
-from app.projects.models import ProjectMember, RoleEnum
-from app.projects.repository import ProjectRepository
-from app.projects.schemas import ProjectInviteRequest
-from app.shared.s3.client import s3_client
-from app.shared.redis.client import get_redis
 from app.documents.schemas import DocumentRead
+from app.projects.repository import ProjectRepository
+from app.shared.redis.client import get_redis
+from app.shared.s3.client import s3_client
 from app.users.models import User
 
 
@@ -24,18 +22,14 @@ class DocumentService:
     async def _check_project_access(self, project_id: uuid.UUID, user_id: uuid.UUID):
         project = await self.project_repo.get_by_id(project_id)
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Проект не найден"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Проект не найден")
 
         is_owner = project.owner_id == user_id
         is_member = any(m.user_id == user_id for m in project.members)
 
         if not is_owner and not is_member:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="У вас нет доступа к этому проекту"
+                status_code=status.HTTP_403_FORBIDDEN, detail="У вас нет доступа к этому проекту"
             )
         return project, is_owner
 
@@ -46,15 +40,12 @@ class DocumentService:
         await redis.delete(cache_key)
 
     async def upload_document(
-        self,
-        project_id: uuid.UUID,
-        file: UploadFile,
-        title: str,
-        current_user: User
+        self, project_id: uuid.UUID, file: UploadFile, title: str, current_user: User
     ) -> Document:
         await self._check_project_access(project_id, current_user.id)
 
-        file_ext = file.filename.split(".")[-1] if "." in file.filename else ""
+        file_name = file.filename or "unnamed"
+        file_ext = file_name.split(".")[-1] if "." in file_name else ""
         s3_key = f"projects/{project_id}/{uuid.uuid4()}.{file_ext}"
 
         await s3_client.upload_file(file, s3_key)
@@ -65,34 +56,27 @@ class DocumentService:
 
         doc = await self.doc_repo.create_document_with_version(
             project_id=project_id,
-            title=title or file.filename,
+            title=title or file_name,
             s3_key=s3_key,
-            file_name=file.filename,
+            file_name=file_name,
             file_size=file_size,
             content_type=file.content_type or "application/octet-stream",
-            user_id=current_user.id
+            user_id=current_user.id,
         )
 
         # Инвалидируем кэш списка документов проекта
         await self._invalidate_project_cache(project_id)
         return doc
 
-    async def add_version(
-        self,
-        document_id: uuid.UUID,
-        file: UploadFile,
-        current_user: User
-    ):
+    async def add_version(self, document_id: uuid.UUID, file: UploadFile, current_user: User):
         document = await self.doc_repo.get_by_id(document_id)
         if not document:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Документ не найден"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Документ не найден")
 
         await self._check_project_access(document.project_id, current_user.id)
 
-        file_ext = file.filename.split(".")[-1] if "." in file.filename else ""
+        file_name = file.filename or "unnamed"
+        file_ext = file_name.split(".")[-1] if "." in file_name else ""
         s3_key = f"projects/{document.project_id}/{uuid.uuid4()}.{file_ext}"
 
         await s3_client.upload_file(file, s3_key)
@@ -108,10 +92,10 @@ class DocumentService:
             document_id=document_id,
             version_number=next_version_number,
             s3_key=s3_key,
-            file_name=file.filename,
+            file_name=file_name,
             file_size=file_size,
             content_type=file.content_type or "application/octet-stream",
-            uploaded_by_id=current_user.id
+            uploaded_by_id=current_user.id,
         )
 
         await self._invalidate_project_cache(document.project_id)
@@ -121,8 +105,7 @@ class DocumentService:
         document = await self.doc_repo.get_by_id(document_id)
         if not document or not document.versions:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Документ или версии не найдены"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Документ или версии не найдены"
             )
 
         await self._check_project_access(document.project_id, current_user.id)
@@ -156,16 +139,13 @@ class DocumentService:
     async def delete_document(self, document_id: uuid.UUID, current_user: User) -> None:
         document = await self.doc_repo.get_by_id(document_id)
         if not document:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Документ не найден"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Документ не найден")
 
         _, is_owner = await self._check_project_access(document.project_id, current_user.id)
         if not is_owner:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Только владелец проекта может удалять документы"
+                detail="Только владелец проекта может удалять документы",
             )
 
         for version in document.versions:
@@ -180,10 +160,7 @@ class DocumentService:
     async def get_document(self, document_id: uuid.UUID, current_user: User) -> Document:
         document = await self.doc_repo.get_by_id(document_id)
         if not document:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Документ не найден"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Документ не найден")
 
         await self._check_project_access(document.project_id, current_user.id)
         return document

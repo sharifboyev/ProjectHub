@@ -1,19 +1,23 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Response, status
+
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.shared.db.session import get_db
-from app.shared.security.dependencies import get_current_user
-from app.users.models import User
 from app.documents.schemas import DocumentRead, DocumentVersionRead
 from app.documents.service import DocumentService
+from app.shared.db.session import get_db
+from app.shared.security.dependencies import get_current_user
 from app.shared.storage import StorageService
+from app.users.models import User
 
 router = APIRouter(tags=["Documents"])
 
 
-@router.post("/projects/{project_id}/documents", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/projects/{project_id}/documents",
+    response_model=DocumentRead,
+    status_code=status.HTTP_201_CREATED,
+)
 async def upload_document(
     project_id: uuid.UUID,
     file: UploadFile = File(...),
@@ -25,7 +29,7 @@ async def upload_document(
     return await service.upload_document(project_id, file, title, current_user)
 
 
-@router.get("/projects/{project_id}/documents", response_model=List[DocumentRead])
+@router.get("/projects/{project_id}/documents", response_model=list[DocumentRead])
 async def get_project_documents(
     project_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

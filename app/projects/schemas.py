@@ -1,19 +1,20 @@
 import uuid
 from datetime import datetime
-from typing import Optional, List
+
 from pydantic import BaseModel, ConfigDict, EmailStr
+
 from app.projects.models import RoleEnum
 from app.users.schemas import UserRead
 
 
 class ProjectCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
 
 
 class ProjectMemberRead(BaseModel):
@@ -27,11 +28,11 @@ class ProjectMemberRead(BaseModel):
 class ProjectRead(BaseModel):
     id: uuid.UUID
     name: str
-    description: Optional[str]
+    description: str | None
     owner_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
-    members: List[ProjectMemberRead] = []
+    members: list[ProjectMemberRead] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,12 +41,13 @@ class AddMemberRequest(BaseModel):
     email: EmailStr
     role: RoleEnum = RoleEnum.PARTICIPANT
 
+
 class ProjectInviteRequest(BaseModel):
     email: EmailStr
     role: RoleEnum = RoleEnum.PARTICIPANT
 
 
-class ProjectMemberRead(BaseModel):
+class ProjectMemberInfo(BaseModel):
     user_id: uuid.UUID
     email: str
     role: RoleEnum
