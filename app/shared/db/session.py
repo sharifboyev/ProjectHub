@@ -16,7 +16,6 @@ AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
-    autocommit=False,
     autoflush=False,
 )
 
@@ -29,7 +28,4 @@ class Base(DeclarativeBase):
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI Dependency для получения сессии БД на время запроса."""
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session

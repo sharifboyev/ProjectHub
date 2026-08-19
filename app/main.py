@@ -1,29 +1,53 @@
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+# Импорт моделей для корректной инициализации SQLAlchemy / Alembic
 import app.users.models  # noqa: F401
 import app.projects.models  # noqa: F401
 import app.documents.models  # noqa: F401
 
 from app.shared.config.settings import settings
-from app.shared.middleware.logging import LoggingMiddleware
+from app.shared.logging.logging import RequestLoggingMiddleware
+from app.shared.redis.client import init_redis, close_redis
+from app.shared.s3.client import s3_client
+
 from app.auth.router import router as auth_router
 from app.projects.router import router as projects_router
 from app.documents.router import router as documents_router
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Подключение к Redis и проверка/создание S3-бакета
+    await init_redis()
+    await s3_client.ensure_bucket_exists()
+    yield
+    # Shutdown: Закрытие соединения с Redis
+    await close_redis()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
-# Подключаем Middleware логов
-app.add_middleware(LoggingMiddleware)
+# Middleware
+app.add_middleware(RequestLoggingMiddleware)
 
-# Подключаем эндпоинты
+# Подключение всех роутеров
 app.include_router(auth_router)
 app.include_router(projects_router)
-app.include_router(documents_router)  # <-- 2. ДОБАВИЛИ ЭТУ СТРОКУ!
+app.include_router(documents_router)
 
 
 @app.get("/health", tags=["Healthcheck"])

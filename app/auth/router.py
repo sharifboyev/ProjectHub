@@ -6,18 +6,18 @@ from app.auth.service import AuthService
 from app.users.schemas import UserRead
 from app.shared.db.session import get_db
 
-router = APIRouter(prefix="", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/auth", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(data: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Регистрация нового пользователя (POST /auth)."""
+    """Регистрация нового пользователя (POST /auth/register)."""
     service = AuthService(db)
     return await service.register(data)
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(data: UserLoginRequest, db: AsyncSession = Depends(get_db)):
-    """Вход в систему с получением JWT токена (POST /login)."""
+    """Вход в систему с получением JWT токена (POST /auth/login)."""
     service = AuthService(db)
     return await service.login(data)
