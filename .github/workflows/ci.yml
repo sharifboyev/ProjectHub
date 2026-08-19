@@ -63,6 +63,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test_secret_key_for_ci
           JWT_SECRET_KEY: test_secret_key_for_ci
         run: uv run pytest
 
