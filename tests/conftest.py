@@ -77,9 +77,19 @@ async def mock_redis():
 @pytest_asyncio.fixture(autouse=True)
 async def mock_s3_client():
     """Мокирование S3/MinIO клиентов."""
-    with patch("app.documents.service.s3_client") as mock_s3:
-        mock_s3.upload_file = AsyncMock(
-            return_value="https://mock-s3.local/projecthub-documents/test.txt"
-        )
-        mock_s3.delete_file = AsyncMock(return_value=True)
+    mock_s3 = AsyncMock()
+    mock_s3.upload_file = AsyncMock(
+        return_value="https://mock-s3.local/projecthub-documents/test.txt"
+    )
+    mock_s3.delete_file = AsyncMock(return_value=True)
+    mock_s3.download_file = AsyncMock(return_value=b"mock content")
+    mock_s3.get_project_total_size = AsyncMock(return_value=0)
+    mock_s3.ensure_bucket_exists = AsyncMock(return_value=None)
+
+    with (
+        patch("app.documents.service.s3_client", mock_s3),
+        patch("app.shared.storage.s3_client", mock_s3),
+        patch("app.main.s3_client", mock_s3),
+        patch("app.shared.s3.client.s3_client", mock_s3),
+    ):
         yield mock_s3
