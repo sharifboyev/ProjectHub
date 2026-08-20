@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 
 # Импорт моделей для корректной инициализации SQLAlchemy / Alembic
 from app.auth.router import router as auth_router
@@ -11,7 +11,7 @@ from app.shared.config.settings import settings
 from app.shared.logging.logging import RequestLoggingMiddleware
 from app.shared.redis.client import close_redis, init_redis
 from app.shared.s3.client import s3_client
-from app.shared.tasks import get_arq_pool, close_arq_pool
+from app.shared.tasks import close_arq_pool
 
 logging.basicConfig(
     level=logging.INFO,
