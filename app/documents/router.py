@@ -25,10 +25,16 @@ async def upload_document(
     file: UploadFile = File(...),
     title: str = Form(None),
     db: AsyncSession = Depends(get_db),
+    arq: ArqRedis = Depends(get_arq_pool),
     current_user: User = Depends(get_current_user),
 ):
     service = DocumentService(db)
-    return await service.upload_document(project_id, file, title, current_user)
+    document = await service.upload_document(project_id, file, title, current_user)
+
+    # Постановка фоновой задачи в ARQ (например, обработка текста или создание превью)
+    await arq.enqueue_job("process_document_task", document_id=str(document.id))
+
+    return document
 
 
 @router.get("/projects/{project_id}/documents", response_model=list[DocumentRead])
@@ -95,13 +101,14 @@ async def delete_document(
 async def upload_document_version(
     document_id: uuid.UUID,
     file: UploadFile = File(...),
+    arq: ArqRedis = Depends(get_arq_pool),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = DocumentService(db)
-    return await service.add_version(document_id, file, current_user)
+    version = await service.add_version(document_id, file, current_user)
 
-@router.post("/{doc_id}/process")
-async def process_document(doc_id: int, arq: ArqRedis = Depends(get_arq_pool)):
-    job = await arq.enqueue_job("process_document_task", document_id=doc_id)
-    return {"status": "queued", "job_id": job.job_id}
+    # Фоновая задача при добавлении новой версии
+    await arq.enqueue_job("process_document_task", document_id=str(document_id))
+
+    return version

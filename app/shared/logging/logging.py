@@ -1,26 +1,33 @@
 import logging
 import time
-
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
+from typing import Any
 
 logger = logging.getLogger("projecthub.access")
 
 
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+class RequestLoggingMiddleware:
+    def __init__(self, app: Any):
+        self.app = app
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         start_time = time.perf_counter()
 
-        response = await call_next(request)
+        async def send_wrapper(message: Any) -> None:
+            await send(message)
+            
+            if message["type"] == "http.response.body":
+                process_time_ms = (time.perf_counter() - start_time) * 1000
+                client_host = "unknown"
+                if "client" in scope and scope["client"]:
+                    client_host = scope["client"][0]
 
-        process_time_ms = (time.perf_counter() - start_time) * 1000
-        client_host = request.client.host if request.client else "unknown"
+                logger.info(
+                    f"{client_host} - '{scope['method']} {scope['path']}' "
+                    f"Completed in {process_time_ms:.2f}ms"
+                )
 
-        logger.info(
-            f"{client_host} - '{request.method} {request.url.path}' "
-            f"Status: {response.status_code} "
-            f"Completed in {process_time_ms:.2f}ms"
-        )
-
-        response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
-        return response
+        await self.app(scope, receive, send_wrapper)

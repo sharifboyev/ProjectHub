@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 # Импорт моделей для корректной инициализации SQLAlchemy / Alembic
 from app.auth.router import router as auth_router
@@ -27,11 +27,8 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: Закрытие соединения с Redis
     await close_redis()
-    await get_arq_pool()
-    yield
     await close_arq_pool()
 
-app = FastAPI(lifespan=lifespan)
 
 main_app = FastAPI(
     title=settings.PROJECT_NAME,

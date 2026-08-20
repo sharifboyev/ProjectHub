@@ -1,57 +1,55 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.main import main_app
 from app.shared.config.settings import settings
 from app.shared.db.session import Base, get_db
+from app.shared.tasks import get_arq_pool
 
 TEST_DATABASE_URL = settings.DATABASE_URL.replace("projecthub", "projecthub_test")
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_db():
-    """Создает тестовые таблицы перед запуском сессии и удаляет их после."""
-    engine_test = create_async_engine(TEST_DATABASE_URL, future=True)
-    async with engine_test.begin() as conn:
+@pytest_asyncio.fixture(scope="session")
+async def test_engine():
+    """Единый Engine на всю тестовую сессию."""
+    engine = create_async_engine(TEST_DATABASE_URL, future=True, poolclass=NullPool)
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine_test.begin() as conn:
+
+    yield engine
+
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    await engine_test.dispose()
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Предоставляет изолированную транзакцию БД для каждого теста."""
-    engine_test = create_async_engine(TEST_DATABASE_URL, future=True)
-    testing_session_local = async_sessionmaker(
-        engine_test, class_=AsyncSession, expire_on_commit=False
+async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
+    """Предоставляет изолированную сессию БД для каждого теста."""
+    session_maker = async_sessionmaker(
+        test_engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
     )
-    async with testing_session_local() as session:
+    async with session_maker() as session:
         yield session
-        await session.rollback()
-    await engine_test.dispose()
+        await session.close()
 
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """HTTP-клиент для вызова API с подменяемой сессией БД и запуском lifespan."""
+    """HTTP-клиент для вызова API."""
 
-    async def _override_get_db():
-        yield db_session
+    main_app.dependency_overrides[get_db] = lambda: db_session
 
-    main_app.dependency_overrides[get_db] = _override_get_db
-
-    # Запускаем контекст lifespan, чтобы отработали стартовые обработчики приложения
-    async with (
-        main_app.router.lifespan_context(main_app),
-        AsyncClient(transport=ASGITransport(app=main_app), base_url="http://test") as ac,
-    ):
+    transport = ASGITransport(app=main_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
     main_app.dependency_overrides.clear()
@@ -59,7 +57,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 @pytest_asyncio.fixture(autouse=True)
 async def mock_redis():
-    """Мокирование клиента Redis по всем местам прямого импорта."""
+    """Мокирование клиента Redis."""
     fake_redis = AsyncMock()
     fake_redis.get = AsyncMock(return_value=None)
     fake_redis.set = AsyncMock(return_value=True)
@@ -93,3 +91,14 @@ async def mock_s3_client():
         patch("app.shared.s3.client.s3_client", mock_s3),
     ):
         yield mock_s3
+
+
+@pytest.fixture(autouse=True)
+def override_arq_pool():
+    """Мокирование ARQ на экземпляре main_app."""
+    mock_arq = AsyncMock()
+    mock_arq.enqueue_job = AsyncMock(return_value=AsyncMock(job_id="test_job_123"))
+
+    main_app.dependency_overrides[get_arq_pool] = lambda: mock_arq
+    yield mock_arq
+    main_app.dependency_overrides.pop(get_arq_pool, None)
