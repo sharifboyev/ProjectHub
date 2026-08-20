@@ -112,3 +112,17 @@ async def upload_document_version(
     await arq.enqueue_job("process_document_task", document_id=str(document_id))
 
     return version
+
+@router.get("/documents/{document_id}/presigned-url")
+async def get_document_presigned_url(
+    document_id: uuid.UUID,
+    expires_in: int = 3600,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Возвращает временную Presigned URL ссылку для скачивания файла прямо из MinIO/S3."""
+    service = DocumentService(db)
+    download_url = await service.get_download_url(
+        document_id=document_id, user=current_user, expires_in=expires_in
+    )
+    return {"download_url": download_url, "expires_in": expires_in}

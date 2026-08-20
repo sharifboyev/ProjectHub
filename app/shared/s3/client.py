@@ -65,5 +65,26 @@ class S3Client:
         async with await self._get_client() as client:
             await client.delete_object(Bucket=self.bucket_name, Key=s3_path)
 
+    async def generate_presigned_url(
+            self, file_key: str, expires_in: int = 3600
+    ) -> str:
+        """Генерирует ссылку для прямого скачивания файла из S3.
+
+        :param file_key: Путь к файлу в bucket
+        :param expires_in: Время жизни ссылки в секундах (по умолчанию 1 час)
+        """
+        async with self.get_client() as client:
+            try:
+                url = await client.generate_presigned_url(
+                    ClientMethod="get_object",
+                    Params={
+                        "Bucket": self.bucket_name,
+                        "Key": file_key,
+                    },
+                    ExpiresIn=expires_in,
+                )
+                return url
+            except ClientError as e:
+                raise e
 
 s3_client = S3Client()

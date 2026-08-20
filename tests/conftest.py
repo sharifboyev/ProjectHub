@@ -102,3 +102,25 @@ def override_arq_pool():
     main_app.dependency_overrides[get_arq_pool] = lambda: mock_arq
     yield mock_arq
     main_app.dependency_overrides.pop(get_arq_pool, None)
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def mock_s3_client():
+    mock_s3 = AsyncMock()
+    mock_s3.upload_file = AsyncMock(return_value="https://mock-s3.local/test.txt")
+    mock_s3.delete_file = AsyncMock(return_value=True)
+    mock_s3.download_file = AsyncMock(return_value=b"mock content")
+    mock_s3.get_project_total_size = AsyncMock(return_value=0)
+    mock_s3.ensure_bucket_exists = AsyncMock(return_value=None)
+    # Мокируем новый метод
+    mock_s3.generate_presigned_url = AsyncMock(
+        return_value="https://mock-s3.local/presigned-url-test"
+    )
+
+    with (
+        patch("app.documents.service.s3_client", mock_s3),
+        patch("app.shared.storage.s3_client", mock_s3),
+        patch("app.main.s3_client", mock_s3),
+        patch("app.shared.s3.client.s3_client", mock_s3),
+    ):
+        yield mock_s3

@@ -164,3 +164,15 @@ class DocumentService:
 
         await self._check_project_access(document.project_id, current_user.id)
         return document
+
+    async def get_download_url(
+            self, document_id: uuid.UUID, user: User, expires_in: int = 3600
+    ) -> str:
+        document = await self.get_document(document_id, user)
+
+        # Генерируем Presigned URL через S3 клиент
+        download_url = await s3_client.generate_presigned_url(
+            file_key=document.s3_key,
+            expires_in=expires_in,
+        )
+        return download_url
