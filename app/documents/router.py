@@ -1,5 +1,6 @@
 import uuid
 
+from arq import ArqRedis
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +9,7 @@ from app.documents.service import DocumentService
 from app.shared.db.session import get_db
 from app.shared.security.dependencies import get_current_user
 from app.shared.storage import StorageService
+from app.shared.tasks import get_arq_pool
 from app.users.models import User
 
 router = APIRouter(tags=["Documents"])
@@ -98,3 +100,8 @@ async def upload_document_version(
 ):
     service = DocumentService(db)
     return await service.add_version(document_id, file, current_user)
+
+@router.post("/{doc_id}/process")
+async def process_document(doc_id: int, arq: ArqRedis = Depends(get_arq_pool)):
+    job = await arq.enqueue_job("process_document_task", document_id=doc_id)
+    return {"status": "queued", "job_id": job.job_id}

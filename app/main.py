@@ -11,6 +11,7 @@ from app.shared.config.settings import settings
 from app.shared.logging.logging import RequestLoggingMiddleware
 from app.shared.redis.client import close_redis, init_redis
 from app.shared.s3.client import s3_client
+from app.shared.tasks import get_arq_pool, close_arq_pool
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,7 +27,11 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: Закрытие соединения с Redis
     await close_redis()
+    await get_arq_pool()
+    yield
+    await close_arq_pool()
 
+app = FastAPI(lifespan=lifespan)
 
 main_app = FastAPI(
     title=settings.PROJECT_NAME,
