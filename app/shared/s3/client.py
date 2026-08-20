@@ -73,7 +73,7 @@ class S3Client:
         :param file_key: Путь к файлу в bucket
         :param expires_in: Время жизни ссылки в секундах (по умолчанию 1 час)
         """
-        async with self.get_client() as client:
+        async with await self._get_client() as client:
             try:
                 url = await client.generate_presigned_url(
                     ClientMethod="get_object",

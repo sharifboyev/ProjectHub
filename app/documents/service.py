@@ -170,9 +170,17 @@ class DocumentService:
     ) -> str:
         document = await self.get_document(document_id, user)
 
+        if not document.versions:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Версии документа не найдены"
+            )
+
+        # Берем последнюю версию
+        latest_version = sorted(document.versions, key=lambda v: v.version_number)[-1]
+
         # Генерируем Presigned URL через S3 клиент
         download_url = await s3_client.generate_presigned_url(
-            file_key=document.s3_key,
+            file_key=latest_version.s3_key,
             expires_in=expires_in,
         )
         return download_url
