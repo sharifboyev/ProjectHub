@@ -47,8 +47,7 @@ class DocumentService:
         await self._check_project_access(project_id, current_user.id)
 
         # 1. Проверяем текущий объём диска проекта
-        current_stats = await StorageService.get_storage_stats(project_id)
-        current_size = current_stats.get("total_bytes", 0)
+        current_size = await StorageService.get_project_size(project_id)
 
         file_size = file.size if file.size is not None else 0
         if file_size == 0:
@@ -90,8 +89,7 @@ class DocumentService:
         await self._check_project_access(document.project_id, current_user.id)
 
         # Проверяем текущий объём диска проекта
-        current_stats = await StorageService.get_storage_stats(document.project_id)
-        current_size = current_stats.get("total_bytes", 0)
+        current_size = await StorageService.get_project_size(document.project_id)
 
         file_size = file.size if file.size is not None else 0
         if file_size == 0:
