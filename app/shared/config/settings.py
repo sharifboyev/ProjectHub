@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     REDIS_URL: str
 
     # Auth / Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "super_secret_jwt_key_with_at_least_32_bytes_len!"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
