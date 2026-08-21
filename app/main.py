@@ -2,10 +2,11 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
-# Импорт моделей для корректной инициализации SQLAlchemy / Alembic
 from app.auth.router import router as auth_router
 from app.documents.router import router as documents_router
+from app.health.router import router as health_router
 from app.projects.router import router as projects_router
 from app.shared.config.settings import settings
 from app.shared.logging.logging import RequestLoggingMiddleware
@@ -25,7 +26,7 @@ async def lifespan(app: FastAPI):
     await init_redis()
     await s3_client.ensure_bucket_exists()
     yield
-    # Shutdown: Закрытие соединения с Redis
+    # Shutdown: Закрытие соединения с Redis и ARQ
     await close_redis()
     await close_arq_pool()
 
@@ -41,13 +42,16 @@ main_app = FastAPI(
 # Middleware
 main_app.add_middleware(RequestLoggingMiddleware)
 
-# Подключение всех роутеров
+# Подключение роутеров
 main_app.include_router(auth_router)
 main_app.include_router(projects_router)
 main_app.include_router(documents_router)
+main_app.include_router(health_router)
 
-
-@main_app.get("/health", tags=["Healthcheck"])
-async def health_check():
-    """Проверка работоспособности сервиса."""
-    return {"status": "ok", "project": settings.PROJECT_NAME}
+# Prometheus Instrumentator для экспорта /metrics
+instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=False,
+    should_instrument_requests_inprogress=True,
+)
+instrumentator.instrument(main_app).expose(main_app, endpoint="/metrics")

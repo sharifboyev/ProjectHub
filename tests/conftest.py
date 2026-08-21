@@ -71,11 +71,13 @@ async def mock_redis():
     fake_redis.aclose = AsyncMock()
     fake_redis.exists = AsyncMock(return_value=False)
     fake_redis.incrby = AsyncMock(return_value=0)
+    fake_redis.ping = AsyncMock(return_value=True)
 
     with (
         patch("app.documents.service.get_redis", AsyncMock(return_value=fake_redis)),
         patch("app.shared.redis.client.get_redis", AsyncMock(return_value=fake_redis)),
         patch("app.shared.storage.get_redis", AsyncMock(return_value=fake_redis)),
+        patch("app.health.router.get_redis", AsyncMock(return_value=fake_redis)),
     ):
         yield fake_redis
 
