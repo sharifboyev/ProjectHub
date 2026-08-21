@@ -10,8 +10,10 @@ from app.documents.schemas import DocumentRead
 from app.projects.repository import ProjectRepository
 from app.shared.redis.client import get_redis
 from app.shared.s3.client import s3_client
+from app.shared.storage import StorageService
 from app.users.models import User
 
+MAX_PROJECT_STORAGE_BYTES = 50 * 1024 * 1024  # 50 MB
 
 class DocumentService:
     def __init__(self, db: AsyncSession):
@@ -40,19 +42,31 @@ class DocumentService:
         await redis.delete(cache_key)
 
     async def upload_document(
-        self, project_id: uuid.UUID, file: UploadFile, title: str, current_user: User
+        self, project_id: uuid.UUID, file: UploadFile, title: str | None, current_user: User
     ) -> Document:
         await self._check_project_access(project_id, current_user.id)
+
+        # 1. Проверяем текущий объём диска проекта
+        current_stats = await StorageService.get_storage_stats(project_id)
+        current_size = current_stats.get("total_bytes", 0)
+
+        file_size = file.size if file.size is not None else 0
+        if file_size == 0:
+            file.file.seek(0, 2)
+            file_size = file.file.tell()
+            file.file.seek(0)
+
+        if current_size + file_size > MAX_PROJECT_STORAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Превышен лимит хранилища проекта (максимум 50 MB)",
+            )
 
         file_name = file.filename or "unnamed"
         file_ext = file_name.split(".")[-1] if "." in file_name else ""
         s3_key = f"projects/{project_id}/{uuid.uuid4()}.{file_ext}"
 
         await s3_client.upload_file(file, s3_key)
-
-        file.file.seek(0, 2)
-        file_size = file.file.tell()
-        file.file.seek(0)
 
         doc = await self.doc_repo.create_document_with_version(
             project_id=project_id,
@@ -75,15 +89,27 @@ class DocumentService:
 
         await self._check_project_access(document.project_id, current_user.id)
 
+        # Проверяем текущий объём диска проекта
+        current_stats = await StorageService.get_storage_stats(document.project_id)
+        current_size = current_stats.get("total_bytes", 0)
+
+        file_size = file.size if file.size is not None else 0
+        if file_size == 0:
+            file.file.seek(0, 2)
+            file_size = file.file.tell()
+            file.file.seek(0)
+
+        if current_size + file_size > MAX_PROJECT_STORAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Превышен лимит хранилища проекта (максимум 50 MB)",
+            )
+
         file_name = file.filename or "unnamed"
         file_ext = file_name.split(".")[-1] if "." in file_name else ""
         s3_key = f"projects/{document.project_id}/{uuid.uuid4()}.{file_ext}"
 
         await s3_client.upload_file(file, s3_key)
-
-        file.file.seek(0, 2)
-        file_size = file.file.tell()
-        file.file.seek(0)
 
         # Подсчитываем порядковый номер следующей версии
         next_version_number = len(document.versions) + 1 if document.versions else 1

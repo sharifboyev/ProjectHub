@@ -40,6 +40,12 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
         await session.close()
 
+    # Очистка таблиц после каждого теста для изоляции
+    async with test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
+        await conn.commit()
+
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
@@ -63,10 +69,13 @@ async def mock_redis():
     fake_redis.delete = AsyncMock(return_value=1)
     fake_redis.keys = AsyncMock(return_value=[])
     fake_redis.aclose = AsyncMock()
+    fake_redis.exists = AsyncMock(return_value=False)
+    fake_redis.incrby = AsyncMock(return_value=0)
 
     with (
         patch("app.documents.service.get_redis", AsyncMock(return_value=fake_redis)),
         patch("app.shared.redis.client.get_redis", AsyncMock(return_value=fake_redis)),
+        patch("app.shared.storage.get_redis", AsyncMock(return_value=fake_redis)),
     ):
         yield fake_redis
 
